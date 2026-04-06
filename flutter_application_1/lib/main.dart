@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/screens/login_screen.dart';
 import 'package:flutter_application_1/screens/imc_list_screen.dart';
+import 'package:flutter_application_1/screens/security_test_panel.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
+import 'package:flutter_application_1/services/security_service.dart';
+import 'package:flutter_application_1/widgets/security_alert_dialog.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,6 +41,24 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkLogin() async {
+    // NIVEL 1: Verificar que el dispositivo no esté rooteado
+    final isDeviceRooted = await SecurityService.isDeviceRooted();
+    
+    if (isDeviceRooted) {
+      // Registrar evento de seguridad
+      await SecurityService.logSecurityEvent(
+        'ROOTED_DEVICE_DETECTED',
+        'Dispositivo con privilegios de root detectado. Aplicación terminada.',
+      );
+      
+      if (mounted) {
+        // Mostrar diálogo de alerta y cerrar la aplicación
+        SecurityAlertDialog.showRootDetected(context);
+        return; // No continuar con la ejecución
+      }
+    }
+
+    // Si el dispositivo es seguro, continuar normalmente
     await Future.delayed(const Duration(seconds: 1));
     final isLoggedIn = await AuthService.isLoggedIn();
     
@@ -54,15 +76,46 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.health_and_safety, size: 80, color: Colors.blue),
-            SizedBox(height: 20),
-            CircularProgressIndicator(),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // Centro: Loading
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.health_and_safety, size: 80, color: Colors.blue),
+                SizedBox(height: 20),
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text(
+                  'Inicializando...',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+          
+          // En modo DEBUG, mostrar botón de testing en la esquina superior derecha
+          if (kDebugMode)
+            Positioned(
+              top: 40,
+              right: 16,
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  print('Botón Testing presionado, navegando a SecurityTestPanel...');
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SecurityTestPanel(),
+                    ),
+                  );
+                },
+                backgroundColor: Colors.deepOrange,
+                icon: const Icon(Icons.security),
+                label: const Text('Testing'),
+              ),
+            ),
+        ],
       ),
     );
   }

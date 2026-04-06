@@ -42,3 +42,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // RootBeer: Librería para detección multivariable de root (MSTG-RES-1)
+    implementation("com.scottyab:rootbeer-lib:0.1.0")
+}
+
