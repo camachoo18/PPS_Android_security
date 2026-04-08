@@ -77,6 +77,40 @@ class SecurityService {
     }
   }
 
+  /// Verifica si un debugger está conectado (NIVEL 2 - MSTG-RES-2)
+  /// Anti-Debugging: Detecta si herramientas de debugreen están conectadas
+  /// Nota: En debug mode de Flutter, esto puede retornar true, pero en release mode
+  /// el MainActivity.kt hace System.exit(0) antes de que esto se ejecute
+  static Future<bool> isDebuggerConnected() async {
+    try {
+      if (Platform.isAndroid) {
+        try {
+          print('Verificando si debugger está conectado (MSTG-RES-2)...');
+          
+          // Llamar al método nativo que usa Debug.isDebuggerConnected()
+          final bool isConnected = await platform.invokeMethod<bool>('isDebuggerConnected') ?? false;
+          
+          if (isConnected) {
+            print('🔴 ANTI-DEBUG: Debugger conectado detectado');
+          } else {
+            print('✓ Debugger: No conectado');
+          }
+          
+          return isConnected;
+        } on PlatformException catch (e) {
+          print('Error verificando debugger: ${e.message}');
+          return false;  // En caso de error, asumir que no hay debugger
+        }
+      }
+      
+      // En Desktop: No hay debugger nativo, retornamos false
+      return false;
+    } catch (e) {
+      print('Error en isDebuggerConnected: $e');
+      return false;
+    }
+  }
+
   /// Realiza verificaciones manuales de root adicionales (fallback)
   /// Comprueba la existencia de binarios su
   /// MSTG-RES-1: Incluye verificación específica de /system/xbin/su
@@ -163,10 +197,55 @@ class SecurityService {
   }
 
   /// Simula cierre seguro de la aplicación
-  /// MSTG-RES-1: La política requiere cerrar de forma segura
+  /// MSTG-RES-2: Detección completa de herramientas externas de análisis
+  /// Detecta Frida, Xposed, debuggers y herramientas de reversing
+  /// Retorna un mapa con detalles de qué se detectó
+  static Future<Map<String, dynamic>> checkForExternalAnalysisTools() async {
+    try {
+      if (Platform.isAndroid) {
+        try {
+          print('🔍 Comprobando herramientas externas de análisis (MSTG-RES-2)...');
+          
+          final result = await platform.invokeMethod<Map<dynamic, dynamic>>('checkForExternalAnalysisTools');
+          final analysisResults = Map<String, dynamic>.from(result ?? {});
+          
+          // Log de resultados
+          final toolFound = analysisResults['analysis_tool_found'] ?? false;
+          if (toolFound) {
+            print('⚠️ ADVERTENCIA: Herramienta de análisis detectada');
+            if (analysisResults['frida_detected'] == true) print('  - Frida detectado');
+            if (analysisResults['xposed_detected'] == true) print('  - Xposed Framework detectado');
+            if (analysisResults['debugger_connected'] == true) print('  - Debugger conectado');
+          } else {
+            print('✓ No se detectaron herramientas externas');
+          }
+          
+          return analysisResults;
+        } on PlatformException catch (e) {
+          print('Error en checkForExternalAnalysisTools: ${e.message}');
+          return {'error': e.message, 'analysis_tool_found': false};
+        }
+      }
+      
+      // En Desktop: retornar false (no hay herramientas en desarrollo)
+      return {'analysis_tool_found': false, 'platform': 'desktop'};
+    } catch (e) {
+      print('Error en checkForExternalAnalysisTools: $e');
+      return {'error': e.toString(), 'analysis_tool_found': false};
+    }
+  }
+
+  /// MSTG-RES-2: Verifica si alguna herramienta de análisis está activa
+  /// Retorna true si se detecta cualquier herramienta
+  static Future<bool> hasExternalAnalysisTools() async {
+    final results = await checkForExternalAnalysisTools();
+    return results['analysis_tool_found'] ?? false;
+  }
+
+  /// Cierre seguro de la aplicación
+  /// MSTG-RES: La política requiere cerrar de forma segura cuando se detecten amenazas
   static void shutdownSecurely() {
-    print('Cerrando aplicación por motivos de seguridad (MSTG-RES-1)');
+    print('🛑 Cerrando aplicación por motivos de seguridad (MSTG-RESILIENCE)');
     exit(0);
   }
 }
-
