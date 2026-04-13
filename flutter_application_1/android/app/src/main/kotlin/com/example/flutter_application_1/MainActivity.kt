@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.example.flutter_application_1.SecurityService
 
 /**
  * Activity principal de la aplicación
@@ -92,6 +93,15 @@ class MainActivity : FlutterActivity() {
                             result.success(isValid)
                         } catch (e: Exception) {
                             result.error("APK_SIGNATURE_CHECK_ERROR", e.message, null)
+                        }
+                    }
+
+                    "isRunningOnEmulator" -> {
+                        try {
+                            val isEmulator = securityService.isRunningOnEmulator()
+                            result.success(isEmulator)
+                        } catch (e: Exception) {
+                            result.error("EMULATOR_CHECK_ERROR", e.message, null)
                         }
                     }
 

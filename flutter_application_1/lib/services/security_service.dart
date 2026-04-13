@@ -285,7 +285,29 @@ class SecurityService {
     return '';
   }
 
+  // ==================== NIVEL 5: RESPUESTA DINÁMICA Y RESILIENCIA ====================
 
+  /// MSTG-RES-5: Detecta si la aplicación se ejecuta en un emulador
+  /// Esto es parte de NIVEL 5: Respuesta dinámica y resiliencia UX
+  /// El emulador se detecta mediante 4 métodos diferentes:
+  ///   - Propiedades del sistema (android.kernel.qemu, ro.secure)
+  ///   - Archivos específicos de emulador (/system/lib/libqemu.so, etc.)
+  ///   - Características del dispositivo (device, model, manufacturer names)
+  ///   - Entorno QEMU (bootloader)
+  static Future<bool> isRunningOnEmulator() async {
+    try {
+      if (Platform.isAndroid) {
+        final bool isEmulator = await platform.invokeMethod<bool>('isRunningOnEmulator') ?? false;
+        if (isEmulator) {
+          print('⚠️ ADVERTENCIA: Se detectó que la aplicación se ejecuta en un emulador');
+        }
+        return isEmulator;
+      }
+    } on PlatformException catch (e) {
+      print('Error comprobando emulador: ${e.message}');
+    }
+    return false;
+  }
 
   /// Cierre seguro de la aplicación
   /// MSTG-RES: La política requiere cerrar de forma segura cuando se detecten amenazas

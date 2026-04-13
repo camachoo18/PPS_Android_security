@@ -387,4 +387,163 @@ class SecurityService(private val context: Context) {
         val digest = md.digest()
         return digest.joinToString(":") { byte -> "%02x".format(byte) }
     }
+
+    // ==================== NIVEL 5: DETECCIÓN DE EMULADORES ====================
+
+    /**
+     * NIVEL 5: Detecta si la aplicación se ejecuta en un emulador
+     * MSTG-RES-5: Identifica entornos controlados para análisis
+     * 
+     * Métodos de detección:
+     * 1. Propiedades del sistema (android.kernel.qemu, ro.serialno, etc.)
+     * 2. Presencia de archivos específicos del emulador
+     * 3. Características del dispositivo
+     * 4. Procesos específicos del emulador
+     */
+    fun isRunningOnEmulator(): Boolean {
+        return checkEmulatorProperties() || 
+               checkEmulatorFiles() || 
+               checkEmulatorFeatures() ||
+               checkQemuEnvironment()
+    }
+
+    /**
+     * Verificar propiedades del sistema que indican emulador
+     */
+    private fun checkEmulatorProperties(): Boolean {
+        val properties = arrayOf(
+            "android.kernel.qemu",          // QEMU property
+            "ro.serialno",                  // Serial number often "unknown" in emulator
+            "ro.debuggable",                // Debuggable flag
+            "ro.secure",                    // Security flag (false in emulator)
+        )
+
+        for (prop in properties) {
+            try {
+                val value = System.getProperty(prop) ?: continue
+                
+                when (prop) {
+                    "android.kernel.qemu" -> {
+                        if (value == "1") {
+                            android.util.Log.w("EmulatorDetection", "Detected QEMU property")
+                            return true
+                        }
+                    }
+                    "ro.serialno" -> {
+                        if (value.equals("unknown", ignoreCase = true)) {
+                            android.util.Log.w("EmulatorDetection", "Detected unknown serial number")
+                            return true
+                        }
+                    }
+                    "ro.secure" -> {
+                        if (value == "0") {
+                            android.util.Log.w("EmulatorDetection", "Detected insecure system")
+                            return true
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore exceptions
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * Verificar archivos del emulador
+     */
+    private fun checkEmulatorFiles(): Boolean {
+        val emulatorFiles = arrayOf(
+            "/system/lib/libc_malloc_debug_leak.so",      // GenyMotion
+            "/system/app/SpeechRecorder.apk",             // Android Emulator
+            "/system/lib64/libqemu.so",                   // QEMU
+            "/system/lib/libqemu.so",
+            "/system/bin/qemu-props",                     // QEMU props
+            "/sys/qemu_trace",                            // QEMU trace
+            "/system/xbin/qemu-props",
+        )
+
+        for (file in emulatorFiles) {
+            if (File(file).exists()) {
+                android.util.Log.w("EmulatorDetection", "Detected emulator file: $file")
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * Verificar características del emulador (Build properties)
+     */
+    private fun checkEmulatorFeatures(): Boolean {
+        val device = android.os.Build.DEVICE
+        val model = android.os.Build.MODEL
+        val manufacturer = android.os.Build.MANUFACTURER
+        val brand = android.os.Build.BRAND
+        val product = android.os.Build.PRODUCT
+        val fingerprint = android.os.Build.FINGERPRINT
+        val host = android.os.Build.HOST
+
+        // Nombres comunes en emuladores
+        val emulatorIndicators = arrayOf(
+            "generic",      // Default Android Emulator
+            "ranchu",       // Android Emulator (newer)
+            "qemu",         // QEMU
+            "vbox",         // VirtualBox
+            "bluestacks",   // BlueStacks
+            "nox",          // Nox App Player
+            "genymotion",   // GenyMotion
+            "goldfish",     // Android Emulator goldfish
+        )
+
+        for (indicator in emulatorIndicators) {
+            val lowerDevice = device?.lowercase() ?: ""
+            val lowerModel = model?.lowercase() ?: ""
+            val lowerManufacturer = manufacturer?.lowercase() ?: ""
+            val lowerBrand = brand?.lowercase() ?: ""
+            val lowerProduct = product?.lowercase() ?: ""
+            val lowerHost = host?.lowercase() ?: ""
+
+            if (lowerDevice.contains(indicator) || 
+                lowerModel.contains(indicator) ||
+                lowerManufacturer.contains(indicator) ||
+                lowerBrand.contains(indicator) ||
+                lowerProduct.contains(indicator) ||
+                lowerHost.contains(indicator)) {
+                
+                android.util.Log.w("EmulatorDetection", "Detected emulator indicator: $indicator")
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * Verificar señales de QEMU específicamente
+     */
+    private fun checkQemuEnvironment(): Boolean {
+        try {
+            // Verificar propiedades del bootloader
+            val bootloader = android.os.Build.BOOTLOADER
+            if (bootloader?.lowercase()?.contains("qemu") == true) {
+                android.util.Log.w("EmulatorDetection", "Detected QEMU bootloader")
+                return true
+            }
+
+            // Verificar si es ARM o x86 (emuladores suelen ser x86)
+            val abis = android.os.Build.SUPPORTED_ABIS
+            if (abis.isNotEmpty() && abis[0].lowercase().contains("x86")) {
+                // Esto es opcional - muchos dispositivos legítimos usan x86
+                // android.util.Log.d("EmulatorDetection", "Detected x86 architecture (emulator-common)")
+                // return true
+            }
+        } catch (e: Exception) {
+            // Ignore exceptions
+        }
+
+        return false
+    }
 }

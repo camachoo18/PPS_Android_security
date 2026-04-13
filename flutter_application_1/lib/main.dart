@@ -122,7 +122,10 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     }
 
-    // Si el dispositivo es seguro y no hay herramientas de análisis, continuar normalmente
+    // Si el dispositivo es seguro y no hay herramientas de análisis,
+    // continuar normalmente (NIVEL 5: Cierre controlado alcanzado)
+    print('✓ Aplicación segura - Pasaron todos los niveles de seguridad');
+    
     await Future.delayed(const Duration(seconds: 1));
     final isLoggedIn = await AuthService.isLoggedIn();
     
