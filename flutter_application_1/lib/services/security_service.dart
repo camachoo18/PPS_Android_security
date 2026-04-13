@@ -242,6 +242,51 @@ class SecurityService {
     return results['analysis_tool_found'] ?? false;
   }
 
+  // ==================== NIVEL 3: VERIFICACIÓN DE FIRMA Y DETECCIÓN DE TAMPERING ====================
+
+  /// MSTG-RES-3: Verifica la integridad del APK
+  /// Compara el hash SHA-1 de la firma actual con el valor hardcodeado
+  /// Detecta si el APK fue re-empaquetado o modificado (Anti-Tampering)
+  static Future<bool> verifyAPKSignature() async {
+    if (Platform.isAndroid) {
+      try {
+        print('🔍 Verificando integridad del APK (MSTG-RES-3)...');
+
+        final bool isValid = await platform.invokeMethod<bool>('verifyAPKSignature') ?? false;
+
+        if (isValid) {
+          print('✓ APK verificado: Firma válida (no fue re-empaquetado)');
+        } else {
+          print('🔴 APK MODIFICADO: Firma no coincide (posible tampering/re-empaquetado)');
+        }
+
+        return isValid;
+      } on PlatformException catch (e) {
+        print('Error verificando firma: ${e.message}');
+        return false;
+      }
+    }
+
+    // En Desktop: retornar true (no aplica verificación)
+    return true;
+  }
+
+  /// MSTG-RES-3: Obtiene el hash SHA-1 actual de la firma (para debugging)
+  static Future<String> getAPKSignatureHash() async {
+    if (Platform.isAndroid) {
+      try {
+        final String hash = await platform.invokeMethod<String>('getAPKSignatureHash') ?? '';
+        return hash;
+      } on PlatformException catch (e) {
+        print('Error obteniendo hash: ${e.message}');
+        return '';
+      }
+    }
+    return '';
+  }
+
+
+
   /// Cierre seguro de la aplicación
   /// MSTG-RES: La política requiere cerrar de forma segura cuando se detecten amenazas
   static void shutdownSecurely() {

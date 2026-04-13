@@ -88,19 +88,36 @@ class _SplashScreenState extends State<SplashScreen> {
     // NIVEL 2 EXTENDIDO: Detección completa de herramientas externas
     // Detecta Frida, Xposed, y otras herramientas de reversing/análisis
     final hasAnalysisTools = await SecurityService.hasExternalAnalysisTools();
-    
+
     if (hasAnalysisTools) {
       // Obtener detalles de qué se detectó
       final analysisDetails = await SecurityService.checkForExternalAnalysisTools();
-      
+
       await SecurityService.logSecurityEvent(
         'EXTERNAL_ANALYSIS_TOOLS_DETECTED',
         'Herramientas externas de análisis detectadas: $analysisDetails',
       );
-      
+
       if (mounted) {
         // Mostrar diálogo de alerta y cerrar
         SecurityAlertDialog.showAnalysisToolsDetected(context, analysisDetails);
+        return;
+      }
+    }
+
+    // NIVEL 3: Verificar integridad del APK (Anti-Tampering)
+    // Detecta si el APK fue re-empaquetado o modificado
+    final isAPKValid = await SecurityService.verifyAPKSignature();
+
+    if (!isAPKValid) {
+      await SecurityService.logSecurityEvent(
+        'APK_TAMPERING_DETECTED',
+        'Se detectó que el APK fue modificado o re-empaquetado.',
+      );
+
+      if (mounted) {
+        // Mostrar diálogo de alerta y cerrar
+        SecurityAlertDialog.showAPKTamperingDetected(context);
         return;
       }
     }

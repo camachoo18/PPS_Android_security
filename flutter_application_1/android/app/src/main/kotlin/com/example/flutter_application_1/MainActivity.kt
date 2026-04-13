@@ -75,6 +75,26 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
+                    // NIVEL 3: Verificación de integridad - Obtener hash actual
+                    "getAPKSignatureHash" -> {
+                        try {
+                            val hash = securityService.getAPKSignatureHash()
+                            result.success(hash)
+                        } catch (e: Exception) {
+                            result.error("APK_HASH_GET_ERROR", e.message, null)
+                        }
+                    }
+
+                    // NIVEL 3: Verificación de firma contra hash esperado
+                    "verifyAPKSignature" -> {
+                        try {
+                            val isValid = securityService.verifyAPKSignature()
+                            result.success(isValid)
+                        } catch (e: Exception) {
+                            result.error("APK_SIGNATURE_CHECK_ERROR", e.message, null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }

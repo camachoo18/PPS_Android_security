@@ -315,4 +315,78 @@ class SecurityAlertDialog {
       },
     );
   }
+
+  /// Diálogo para detección de tampering en el APK
+  /// MSTG-RES-3: Se detectó que el APK fue modificado o re-empaquetado
+  static void showAPKTamperingDetected(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.warning_rounded, color: Colors.red, size: 28),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('🔴 Integridad del APK Comprometida'),
+              ),
+            ],
+          ),
+          content: const SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Se detectó que la aplicación ha sido modificada o re-empaquetada.',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Esto indica posible tampering o distribución no autorizada (MSTG-RES-3).',
+                  style: TextStyle(fontSize: 12),
+                ),
+                SizedBox(height: 12),
+                Padding(
+                  padding: EdgeInsets.only(left: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Riesgos identificados:'),
+                      Text('• Código malicioso inyectado'),
+                      Text('• Modificación de funcionalidades'),
+                      Text('• Robo de datos del usuario'),
+                      Text('• Violación de seguridad'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Descarga la aplicación desde la fuente oficial.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                SecurityService.shutdownSecurely();
+              },
+              child: const Text('Salir'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
