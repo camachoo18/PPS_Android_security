@@ -31,10 +31,26 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
+            // MSTG-RES-4: Ofuscación de código y minificación
+            // Habilitar ProGuard/R8 para ofuscar nombres de clases, métodos y variables
+            isMinifyEnabled = true
+            // Eliminar recursos no utilizados
+            isShrinkResources = true
+            // Utilizar configuración optimizada de ProGuard
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+
+        getByName("debug") {
+            // DEBUG: Mantener símbolos para facilitar debugging
+            isMinifyEnabled = false
         }
     }
 }
