@@ -7,9 +7,8 @@ import 'package:flutter_application_1/services/auth_service.dart';
 import 'package:flutter_application_1/services/security_service.dart';
 import 'package:flutter_application_1/widgets/security_alert_dialog.dart';
 
-// 🧪 FLAGS PARA TESTING - DESACTIVA EN PRODUCCIÓN
-// Permite testar NIVEL 2 sin que NIVEL 1 interfiera
-const bool SKIP_ROOT_CHECK_FOR_TESTING = true;  // Cambiar a 'false' en producción
+// Test flag: set to false in production
+const bool SKIP_ROOT_CHECK_FOR_TESTING = true;
 
 void main() {
   runApp(const MyApp());
@@ -29,7 +28,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Pantalla inicial que verifica sesión
+// Initial screen for session check
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -45,86 +44,64 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkLogin() async {
-    // 🧪 TESTING NIVEL 2: Si SKIP_ROOT_CHECK_FOR_TESTING=true, saltamos NIVEL 1
+
     if (!SKIP_ROOT_CHECK_FOR_TESTING) {
-      // NIVEL 1: Verificar que el dispositivo no esté rooteado
       final isDeviceRooted = await SecurityService.isDeviceRooted();
       
       if (isDeviceRooted) {
-        // Registrar evento de seguridad
         await SecurityService.logSecurityEvent(
           'ROOTED_DEVICE_DETECTED',
-          'Dispositivo con privilegios de root detectado. Aplicación terminada.',
+          'Dispositivo con privilegios de root detectado',
         );
         
         if (mounted) {
-          // Mostrar diálogo de alerta y cerrar la aplicación
           SecurityAlertDialog.showRootDetected(context);
-          return; // No continuar con la ejecución
+          return;
         }
       }
     }
 
-    // NIVEL 2: Verificar que no hay debugger conectado (Anti-Debugging)
-    // Nota: En Android, MainActivity.kt ya hace System.exit(0) en onCreate()
-    // Si llegamos aquí es porque no hay debugger (o estamos en debug mode de Flutter)
+    // Check debugger
     final isDebuggerConnected = await SecurityService.isDebuggerConnected();
     
     if (isDebuggerConnected) {
-      // En release build, esto nunca se ejecutará porque MainActivity.kt hizo exit(0)
-      // Pero en debug mode de Flutter, registramos para logging
       await SecurityService.logSecurityEvent(
         'DEBUGGER_DETECTED',
-        'Debugger conectado detectado. Aplicación terminada.',
+        'Debugger conectado detectado',
       );
       
       if (mounted) {
-        // Mostrar diálogo de alerta y cerrar
         SecurityAlertDialog.showDebuggerDetected(context);
         return;
       }
     }
 
-    // NIVEL 2 EXTENDIDO: Detección completa de herramientas externas
-    // Detecta Frida, Xposed, y otras herramientas de reversing/análisis
+    // Check external tools
     final hasAnalysisTools = await SecurityService.hasExternalAnalysisTools();
 
     if (hasAnalysisTools) {
-      // Obtener detalles de qué se detectó
       final analysisDetails = await SecurityService.checkForExternalAnalysisTools();
-
-      await SecurityService.logSecurityEvent(
-        'EXTERNAL_ANALYSIS_TOOLS_DETECTED',
-        'Herramientas externas de análisis detectadas: $analysisDetails',
-      );
+      await SecurityService.logSecurityEvent('EXTERNAL_ANALYSIS_TOOLS_DETECTED', '${analysisDetails}');
 
       if (mounted) {
-        // Mostrar diálogo de alerta y cerrar
         SecurityAlertDialog.showAnalysisToolsDetected(context, analysisDetails);
         return;
       }
     }
 
-    // NIVEL 3: Verificar integridad del APK (Anti-Tampering)
-    // Detecta si el APK fue re-empaquetado o modificado
+    // Check APK integrity
     final isAPKValid = await SecurityService.verifyAPKSignature();
 
     if (!isAPKValid) {
-      await SecurityService.logSecurityEvent(
-        'APK_TAMPERING_DETECTED',
-        'Se detectó que el APK fue modificado o re-empaquetado.',
-      );
+      await SecurityService.logSecurityEvent('APK_TAMPERING_DETECTED', 'APK modificado detectado');
 
       if (mounted) {
-        // Mostrar diálogo de alerta y cerrar
         SecurityAlertDialog.showAPKTamperingDetected(context);
         return;
       }
     }
 
-    // Si el dispositivo es seguro y no hay herramientas de análisis,
-    // continuar normalmente (NIVEL 5: Cierre controlado alcanzado)
-    print('✓ Aplicación segura - Pasaron todos los niveles de seguridad');
+    print('✓ Aplicación segura');
     
     await Future.delayed(const Duration(seconds: 1));
     final isLoggedIn = await AuthService.isLoggedIn();

@@ -7,28 +7,14 @@ import java.io.File
 import java.security.MessageDigest
 import com.scottyab.rootbeer.RootBeer
 
-/**
- * Servicio de Seguridad Nativo (Kotlin)
- * Implementa:
- * - MSTG-RES-1: Detección multivariable de root usando RootBeer
- * - MSTG-RES-2: Detección de herramientas externas de análisis (Anti-Debugging)
- * - MSTG-RES-3: Verificación de firma y detección de tampering
- */
 class SecurityService(private val context: Context) {
     private val rootBeer = RootBeer(context)
 
     companion object {
-        // NIVEL 3: Hash SHA-1 de la firma del APK original (HARDCODEADO)
-        // Este valor se verifica en runtime para detectar tampering
         private const val EXPECTED_SIGNATURE_HASH = "93:9e:9b:68:eb:bd:a2:35:f2:cc:26:e9:2a:30:da:7f:3e:80:55:c5"
     }
 
-    // ==================== NIVEL 3: VERIFICACIÓN DE FIRMA Y DETECCIÓN DE TAMPERING ====================
-
-    /**
-     * NIVEL 3: Obtiene el hash SHA-1 de la firma del APK actual
-     * Este método se ejecuta en tiempo de ejecución para verificar integridad
-     */
+    /// Obtiene el hash SHA-1 de la firma del APK
     fun getAPKSignatureHash(): String {
         return try {
             @Suppress("DEPRECATION")
@@ -61,11 +47,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    /**
-     * NIVEL 3: Verifica la integridad del APK comparando hash de firma
-     * Detecta si el APK fue re-empaquetado o modificado (Anti-Tampering)
-     * @return true si el APK es legítimo, false si fue modificado
-     */
+    /// Verifica integridad del APK comparando hash de firma
     fun verifyAPKSignature(): Boolean {
         return try {
             val actualHash = getAPKSignatureHash()
@@ -86,17 +68,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    /**
-     * Detecta si el dispositivo está rooteado usando RootBeer
-     * Realiza múltiples verificaciones (detección multivariable):
-     * - Búsqueda de binarios su
-     * - Verificación de propiedades del sistema
-     * - Detección de herramientas de root conocidas
-     * - Análisis de permisos de directorio
-     * - Y más verificaciones que RootBeer implementa
-     *
-     * @return true si el dispositivo está rooteado, false si es seguro
-     */
+    /// Detecta si dispositivo está rooteado (RootBeer multivariable)
     fun isDeviceRooted(): Boolean {
         return try {
             val result = rootBeer.isRooted
@@ -112,10 +84,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    /**
-     * Obtiene un diagnóstico detallado de por qué se detectó root
-     * Útil para debugging y logging
-     */
+    /// Obtiene diagnóstico detallado de root detection
     fun getRootDiagnostics(): Map<String, Any> {
         return try {
             mapOf(
@@ -131,17 +100,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    // ==================== NIVEL 2: DETECCIÓN DE HERRAMIENTAS EXTERNAS ====================
-
-    /**
-     * NIVEL 2: Comprobación integral de herramientas externas de análisis
-     * Detecta:
-     * - Frida (dynamic instrumentation)
-     * - Xposed Framework (hooking)
-     * - GDB/Debuggers nativos
-     * - Procesos sospechosos
-     * - Archivos de reversing tools
-     */
+    /// Verificación integral de herramientas externas de análisis
     fun checkForExternalAnalysisTools(): Map<String, Any> {
         return mapOf(
             "frida_detected" to checkForFrida(),
@@ -159,10 +118,7 @@ class SecurityService(private val context: Context) {
         )
     }
 
-    /**
-     * Detecta si Frida está inyectado en el proceso
-     * Frida es una herramienta popular de dynamic instrumentation
-     */
+    /// Detecta si Frida está inyectado
     private fun checkForFrida(): Boolean {
         return try {
             // Buscar libraries de Frida en el namespace
@@ -185,10 +141,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    /**
-     * Detecta si Xposed Framework está activo
-     * Xposed es un framework que permite modificar el comportamiento del sistema
-     */
+    /// Detecta si Xposed Framework está activo
     private fun checkForXposed(): Boolean {
         return try {
             // Verificar si la aplicación se ejecuta en un contexto modificado por Xposed
@@ -221,9 +174,7 @@ class SecurityService(private val context: Context) {
         }
     }
 
-    /**
-     * Detecta procesos sospechosos de herramientas de reversing
-     */
+    /// Detecta procesos sospechosos
     private fun checkForSuspiciousProcesses(): List<String> {
         val suspiciousProcesses = mutableListOf<String>()
 
@@ -257,9 +208,7 @@ class SecurityService(private val context: Context) {
         return suspiciousProcesses
     }
 
-    /**
-     * Detecta archivos sospechosos de herramientas de reversing
-     */
+    /// Detecta archivos sospechosos
     private fun checkForSuspiciousFiles(): List<String> {
         val suspiciousFiles = mutableListOf<String>()
 

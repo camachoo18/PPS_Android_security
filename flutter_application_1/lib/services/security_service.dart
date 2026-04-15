@@ -2,54 +2,32 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
-/// Servicio de seguridad para detección de root y entornos inseguros
-/// Implementa MSTG-RES-1: Detección de root y entorno inseguro
-/// IMPORTANTE: Usa RootBeer nativo (Kotlin) para detección multivariable
+/// Servicio de seguridad 
 class SecurityService {
   static final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
-  
-  // Canal de Method para comunicación con código nativo Android
+  // MethodChannel para comunicación con nativo
   static const platform = MethodChannel('com.example.flutter_application_1/security');
 
-  /// Verifica si el dispositivo está rooteado usando RootBeer (multivariable detection)
-  /// Esto cumple con MSTG-RES-1: Integrar librería RootBeer para detección multivariable
-  /// 
-  /// En Android: Usa RootBeer nativo (Kotlin) que realiza:
-  ///   - Búsqueda de binarios su
-  ///   - Verificación de propiedades del sistema
-  ///   - Detección de herramientas de root conocidas
-  ///   - Y más verificaciones multivariables
-  /// 
-  /// En otras plataformas: Retorna false (no hay root)
+  /// Verifica si dispositivo está rooteado (RootBeer)
   static Future<bool> isDeviceRooted() async {
     try {
-      // En Android: Usar RootBeer nativo
       if (Platform.isAndroid) {
         try {
-          print('Iniciando detección de root con RootBeer (MSTG-RES-1)...');
-          
-          // Llamar al método nativo que usa RootBeer
           final bool isRooted = await platform.invokeMethod<bool>('isDeviceRooted') ?? false;
           
           if (isRooted) {
-            print('🔴 DETECCIÓN MULTIVARIABLE: Dispositivo rooteado detectado por RootBeer');
+            print('🔴 Dispositivo rooteado');
             return true;
           } else {
-            print('✓ RootBeer: Dispositivo seguro (no rooteado)');
+            print('\u2713 Dispositivo seguro');
           }
 
           return isRooted;
         } on PlatformException catch (e) {
-          print('Error en RootBeer: ${e.message}');
-          print('Continuando con verificaciones alternativas...');
-          
-          // Fallback a verificaciones manuales si RootBeer falla
-          return await _performManualRootChecks();
+          print('Error: ${e.message}');
+          return false;
         }
       }
-
-      // En otras plataformas (Linux, Windows, Web): retornar false (no hay root en estos)
-      print('Plataforma ${Platform.operatingSystem}: No aplica detección de root nativa');
       return false;
     } catch (e) {
       // En caso de error, asumimos entorno seguro pero registramos
@@ -77,21 +55,16 @@ class SecurityService {
     }
   }
 
-  /// Verifica si un debugger está conectado (NIVEL 2 - MSTG-RES-2)
-  /// Anti-Debugging: Detecta si herramientas de debugreen están conectadas
-  /// Nota: En debug mode de Flutter, esto puede retornar true, pero en release mode
-  /// el MainActivity.kt hace System.exit(0) antes de que esto se ejecute
+  /// Verifica si debugger está conectado
   static Future<bool> isDebuggerConnected() async {
     try {
       if (Platform.isAndroid) {
         try {
-          print('Verificando si debugger está conectado (MSTG-RES-2)...');
-          
-          // Llamar al método nativo que usa Debug.isDebuggerConnected()
+          print('Verificando debugger...');
           final bool isConnected = await platform.invokeMethod<bool>('isDebuggerConnected') ?? false;
           
           if (isConnected) {
-            print('🔴 ANTI-DEBUG: Debugger conectado detectado');
+            print('🔴 Debugger conectado');
           } else {
             print('✓ Debugger: No conectado');
           }
@@ -99,11 +72,9 @@ class SecurityService {
           return isConnected;
         } on PlatformException catch (e) {
           print('Error verificando debugger: ${e.message}');
-          return false;  // En caso de error, asumir que no hay debugger
+          return false;  // Error
         }
       }
-      
-      // En Desktop: No hay debugger nativo, retornamos false
       return false;
     } catch (e) {
       print('Error en isDebuggerConnected: $e');
@@ -111,9 +82,7 @@ class SecurityService {
     }
   }
 
-  /// Realiza verificaciones manuales de root adicionales (fallback)
-  /// Comprueba la existencia de binarios su
-  /// MSTG-RES-1: Incluye verificación específica de /system/xbin/su
+  /// Verificaciones manuales de root (fallback)
   static Future<bool> _performManualRootChecks() async {
     try {
       if (!Platform.isAndroid) {

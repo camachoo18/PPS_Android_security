@@ -7,21 +7,14 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.example.flutter_application_1.SecurityService
 
-/**
- * Activity principal de la aplicación
- * Expone canales de seguridad para Dart mediante MethodChannel
- * NIVEL 2: Anti-Debugging - Verifica debugger en onCreate()
- */
 class MainActivity : FlutterActivity() {
     private val SECURITY_CHANNEL = "com.example.flutter_application_1/security"
     private lateinit var securityService: SecurityService
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // NIVEL 2: Chequeo de Anti-Debugging MSTG-RES-2
-        // Verificar ANTES de que Flutter se inicialice
+        /// Anti-Debugging: Cierre inmediato si debugger conectado
         if (Debug.isDebuggerConnected()) {
-            android.util.Log.e("AntiDebug", "🔴 DEBUGGER CONECTADO - Cerrando aplicación")
-            System.exit(0)  // Cierre inmediato sin permitir continuación
+            System.exit(0)
         }
         super.onCreate(savedInstanceState)
     }
@@ -36,7 +29,6 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SECURITY_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    // NIVEL 1: Detección de root usando RootBeer
                     "isDeviceRooted" -> {
                         try {
                             val isRooted = securityService.isDeviceRooted()
@@ -46,7 +38,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // Obtener diagnósticos detallados
                     "getRootDiagnostics" -> {
                         try {
                             val diagnostics = securityService.getRootDiagnostics()
@@ -56,7 +47,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // NIVEL 2: Anti-Debugging - Verificar si debugger está conectado
                     "isDebuggerConnected" -> {
                         try {
                             val isDebuggerConnected = Debug.isDebuggerConnected()
@@ -66,7 +56,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // NIVEL 2: Anti-Debugging - Detección completa de herramientas externas
                     "checkForExternalAnalysisTools" -> {
                         try {
                             val analysisResults = securityService.checkForExternalAnalysisTools()
@@ -76,7 +65,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // NIVEL 3: Verificación de integridad - Obtener hash actual
                     "getAPKSignatureHash" -> {
                         try {
                             val hash = securityService.getAPKSignatureHash()
@@ -86,7 +74,6 @@ class MainActivity : FlutterActivity() {
                         }
                     }
 
-                    // NIVEL 3: Verificación de firma contra hash esperado
                     "verifyAPKSignature" -> {
                         try {
                             val isValid = securityService.verifyAPKSignature()
